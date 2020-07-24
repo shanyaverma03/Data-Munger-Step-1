@@ -97,12 +97,9 @@ public class DataMunger {
                     break;
 
                 } else {
-                    //if(index==i-1) {
-                    //	base.append(splitString[i]);
-                    //}
-                    //else{
+
                     base.append(splitString[i]).append(" ");
-                    //}
+                    
                 }
             }
 
