@@ -1,5 +1,7 @@
 package com.stackroute.datamunger;
 
+import java.util.ArrayList;
+
 /*There are total 5 DataMungertest files:
  *
  * 1)DataMungerTestTask1.java file is for testing following 3 methods
@@ -26,6 +28,12 @@ package com.stackroute.datamunger;
  * the test cases together.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class DataMunger {
 
     /*
@@ -48,26 +56,13 @@ public class DataMunger {
 
     public String getFileName(String queryString) {
 
-        String query = queryString.toLowerCase();
-        String[] splitString = query.split(" ");
-        int index = 0;
-
-        for (int i = 0; i < splitString.length; i++) {
-
-            if (splitString[i].equals("from")) {
-                index = i;
-                break;
-            }
-
+        StringBuilder name = new StringBuilder();
+        Pattern pattern = Pattern.compile("(from\\s)(\\w+.csv)", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(queryString);
+        if (matcher.find()) {
+            name.append(matcher.group(2));
         }
-
-        if (index != splitString.length - 1) {
-            String fileName = splitString[index + 1];
-            return fileName;
-
-        } else {
-            return "";
-        }
+        return name.toString();
     }
 
     /*
@@ -86,7 +81,14 @@ public class DataMunger {
         if (queryString == null) {
             base = null;
         } else if (queryString.contains("where") == false) {
-            base = null;
+            String reg = "(.+)(\\sgroup.+)";
+            Pattern pattern = Pattern.compile(reg);
+            Matcher matcher = pattern.matcher(queryString);
+            String ans = "";
+            if (matcher.find()) {
+                ans = matcher.group(1);
+            }
+            return ans;
         } else {
             int index = 0;
             String[] splitString = queryString.split(" ");
@@ -99,7 +101,7 @@ public class DataMunger {
                 } else {
 
                     base.append(splitString[i]).append(" ");
-                    
+
                 }
             }
 
@@ -130,7 +132,21 @@ public class DataMunger {
 
     public String[] getFields(String queryString) {
 
-        return null;
+        String[] splitString = queryString.split(" ");
+        int index = 0;
+        StringBuilder fields = new StringBuilder();
+        for (int i = 0; i < splitString.length; i++) {
+            if (splitString[i].equals("select")) {
+                index = i + 1;
+                break;
+            }
+        }
+        String field = "";
+        field += splitString[index];
+        String[] ans = field.split(",");
+        return ans;
+
+
     }
 
     /*
@@ -145,8 +161,40 @@ public class DataMunger {
 
     public String getConditionsPartQuery(String queryString) {
 
-        return null;
+        String query = queryString.toLowerCase();
+        if (queryString.isEmpty() || queryString == null) {
+            return null;
+        }
+        if (!queryString.contains("where")) {
+            return null;
+        }
+
+        String ans = "";
+        if (!query.contains("group by") && !query.contains("order by")) {
+
+            String reg = "(where\\s)(.+)";
+
+            Pattern pattern = Pattern.compile(reg);
+            Matcher matcher = pattern.matcher(query);
+            if (matcher.find()) {
+                ans = matcher.group(2);
+            }
+
+        } else {
+            String reg = "(where\\s)(.+)(\\sgroup\\sby|\\sorder\\sby)";
+            Pattern pattern = Pattern.compile(reg);
+            Matcher matcher = pattern.matcher(query);
+            if (matcher.find()) {
+                ans = matcher.group(2);
+            }
+        }
+
+
+        return ans;
+
     }
+
+
 
     /*
      * This method will extract condition(s) from the query string. The query can
@@ -165,7 +213,29 @@ public class DataMunger {
 
     public String[] getConditions(String queryString) {
 
-        return null;
+        if (queryString == null || queryString.isEmpty()) {
+            return null;
+        }
+        if (!queryString.contains("where")) {
+            return null;
+        }
+
+        String req = getConditionsPartQuery(queryString);
+        String[] str;
+        if (req.contains("and") && !req.contains("or")) {
+            str = req.split("and");
+        } else if (req.contains("or") && !req.contains("and")) {
+            str = req.split("\\sor\\s");
+        } else if (req.contains("and") && req.contains("or")) {
+            str = req.split(" and | or ");
+        } else {
+            str = req.split(",");
+        }
+
+        int i = 0;
+
+        return str;
+
     }
 
     /*
@@ -181,7 +251,23 @@ public class DataMunger {
 
     public String[] getLogicalOperators(String queryString) {
 
-        return null;
+
+        String query = queryString.toLowerCase();
+        if (queryString == null || queryString.isEmpty()) {
+            return null;
+        }
+        if (!query.contains("and") && !query.contains("or")) {
+            return null;
+        }
+
+        StringBuilder builder = new StringBuilder();
+        Pattern pattern = Pattern.compile(" and|or ");
+        Matcher matcher = pattern.matcher(queryString);
+        while ((matcher.find())) {
+            builder.append(matcher.group().trim()).append(" ");
+        }
+        String[] ans = builder.toString().split(" ");
+        return ans;
     }
 
     /*
@@ -194,7 +280,27 @@ public class DataMunger {
 
     public String[] getOrderByFields(String queryString) {
 
-        return null;
+        if (queryString.isEmpty() || queryString == null) {
+            return null;
+        }
+
+        String query = queryString.toLowerCase();
+
+        String reg = "(order\\sby\\s)(\\w+)";
+        Pattern pattern = Pattern.compile(reg);
+        Matcher matcher = pattern.matcher(query);
+        String res = "";
+        int check = 0;
+        if (matcher.find()) {
+            res += matcher.group(2);
+            check = 1;
+        }
+        if (check == 0) {
+            return null;
+        } else {
+            String[] ans = res.split(",");
+            return ans;
+        }
     }
 
     /*
@@ -208,7 +314,25 @@ public class DataMunger {
 
     public String[] getGroupByFields(String queryString) {
 
-        return null;
+        if (queryString == null || queryString.isEmpty()) {
+            return null;
+        }
+        String query = queryString.toLowerCase();
+
+        String reg = "(group\\sby\\s)(\\w+)";
+        Pattern pattern = Pattern.compile(reg);
+        Matcher matcher = pattern.matcher(query);
+        String ans = "";
+        if (matcher.find()) {
+            ans = matcher.group(2);
+            String[] res = ans.split(",");
+
+
+            return res;
+        } else {
+
+            return null;
+        }
     }
 
     /*
@@ -223,7 +347,30 @@ public class DataMunger {
 
     public String[] getAggregateFunctions(String queryString) {
 
-        return null;
+        if (queryString.isEmpty() || queryString == null) {
+            return null;
+        }
+
+        String query = queryString.toLowerCase();
+        if (!query.contains("sum") && !query.contains("count") && !query.contains("min") && !query.contains("max") && !query.contains("avg")) {
+
+            return null;
+        } else {
+            String reg2 = "(sum\\(\\w+\\)|count\\(\\w+\\)|max\\(\\w+\\)|min\\(\\w+\\)|avg\\(\\w+\\))";
+            Pattern pattern = Pattern.compile(reg2);
+            Matcher matcher = pattern.matcher(query);
+            StringBuilder sb = new StringBuilder();
+            while (matcher.find()) {
+                String ans = matcher.group();
+                sb.append(ans).append((" "));
+            }
+            String ans2 = sb.toString();
+            String[] finalAns = ans2.split(" ");
+
+            return finalAns;
+
+
+        }
     }
 
 }
